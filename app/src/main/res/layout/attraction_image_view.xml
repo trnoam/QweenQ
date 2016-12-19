@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/dialog_image_layout">
+
+    <ImageView
+        android:id="@+id/attraction_image_dialog"
+        app:layout_widthPercent="100%"
+        app:layout_aspectRatio="100%"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:text="OK"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:id="@+id/ok_attraction_image_dialog"
+        android:minHeight="50dp"
+        android:textColor="@color/colorToolBar"
+        android:textSize="24sp"
+        android:background="?attr/selectableItemBackground" />
+</LinearLayout>

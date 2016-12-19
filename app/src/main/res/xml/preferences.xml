@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A 'parent' preference, which enables/disables child preferences (below)
+         when checked/unchecked. -->
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="attractions_notifications_key"
+        android:title="@string/attractions_notifications" />
+
+    <EditTextPreference
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="@string/im_employee"
+        android:key="im_an_employee"
+        android:defaultValue="(park's password)"
+        android:id="@+id/im_employee_settings" />
+
+</PreferenceScreen>

@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "778277120105",
+    "firebase_url": "https://qweenq-48917.firebaseio.com",
+    "project_id": "qweenq-48917",
+    "storage_bucket": "qweenq-48917.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778277120105:android:836335095e81a6a8",
+        "android_client_info": {
+          "package_name": "com.qween.qweenq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "778277120105-q45t0ph10p8lkol6oqo3b3mpofsdpcjk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [{ "current_key": "" }],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

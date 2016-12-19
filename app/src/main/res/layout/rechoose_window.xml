@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/description_layout"
+    android:visibility="visible"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/description_text"
+        android:visibility="visible"
+        android:textColor="@color/black"
+        android:layout_weight="1"
+        android:text="@string/rechoose_text"
+        android:textSize="18sp" />
+
+    <Button
+        android:text="OK"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:id="@+id/ok_rechoose"
+        android:minHeight="50dp"
+        android:textColor="@color/colorToolBar"
+        android:textSize="24sp"
+        android:background="?attr/selectableItemBackground" />
+
+</LinearLayout>

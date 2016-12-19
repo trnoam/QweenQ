@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/content_calendar"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="com.qween.qweenq.ChoiceActivity"
+    tools:showIn="@layout/activity_calendar"
+    android:gravity="center_horizontal">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/main_calendar_layout"
+        android:gravity="center_horizontal"
+        android:fillViewport="true"
+        android:background="@color/White">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_weight="1"
+            android:id="@+id/scroll_view_attractions_times"
+            android:visibility="visible"
+            android:background="@android:color/white"
+            android:fillViewport="true"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:id="@+id/attractions_times_layout"
+                android:visibility="visible"
+                android:background="@android:color/white"
+                android:divider="?android:dividerHorizontal"
+                android:showDividers="middle"/>
+        </ScrollView>
+
+    </LinearLayout>
+
+</RelativeLayout>
