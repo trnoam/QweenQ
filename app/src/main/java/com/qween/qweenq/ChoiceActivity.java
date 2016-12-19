@@ -249,7 +249,8 @@ public class ChoiceActivity extends AppCompatActivity {
                     break;
                 default:
                     ArrayList<String> choices = new ArrayList<>();
-                    for(int j = 0; j <= this_choice_activity.attractions_maxes.get(attraction._key); j++){
+                    for(int j = 0; j <= (Math.min(this_choice_activity.attractions_maxes.get(attraction._key),
+                            this_choice_activity.coins_left / attraction._cost)); j++){
                         choices.add(j, Integer.toString(j));
                     }
                     times_choice = new Spinner(this_choice_activity);
