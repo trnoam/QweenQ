@@ -189,7 +189,8 @@ public class ChoiceActivity extends AppCompatActivity {
         }
         for(final Attraction attraction : attractions_data._attractions_array){
             final View times_choice;
-            switch(this_choice_activity.attractions_maxes.get(attraction._key)){
+            switch(Math.min(this_choice_activity.attractions_maxes.get(attraction._key),
+                    this_choice_activity.coins_left / attraction._cost)){
                 case 0:
                     times_choice = new TextView(this_choice_activity);
                     ((TextView)times_choice).setText(R.string.full_notice_text);
