@@ -83,9 +83,9 @@ public class ChoiceActivity extends AppCompatActivity {
     public static final int PORTRAIT_DEFAULT = 8;
     public static Vector<RoundedImageView> images_vector;
     public static SharedPreferences data_choice;
-    public Map<String, Integer> attractions_choices;
-    public Map<String, Integer> attractions_maxes;
-    public int coins_left = 0;
+    public static Map<String, Integer> attractions_choices = null;
+    public static Map<String, Integer> attractions_maxes = null;
+    public static int coins_left = -1;
     public Toast prev_toast = null;
     public Button lets_go_button_choice = null;
     public int max_coins = 0;
@@ -133,18 +133,13 @@ public class ChoiceActivity extends AppCompatActivity {
         }else{
             CodeActivity.curr_coins = 0;
         }
-        coins_left = (int)(CodeActivity.curr_coins + 0.5);
         max_coins = (int)(CodeActivity.curr_coins + 0.5);
-        update_coins_lets_go_button();
-
-        attractions_choices = new HashMap<>();
-        attractions_maxes = new HashMap<>();
 
         if(park_id_choice == 0){
             park_id_choice = data_choice.getInt("park_id", 0);
         }
 
-        if (attractions != null) {
+        if (attractions_maxes != null) {
             announce_sync_times(attractions, false);
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             return;
@@ -187,6 +182,7 @@ public class ChoiceActivity extends AppCompatActivity {
         if(is_first){
             this_choice_activity.init_choices_and_maxes();
         }
+        this_choice_activity.update_coins_lets_go_button();
         for(final Attraction attraction : attractions_data._attractions_array){
             final View times_choice;
             final int amount_possible = Math.max(Math.min(this_choice_activity.attractions_maxes.get(attraction._key),
@@ -489,6 +485,8 @@ public class ChoiceActivity extends AppCompatActivity {
         }
     }
     public void init_choices_and_maxes(){
+        attractions_choices = new HashMap<>();
+        attractions_maxes = new HashMap<>();
         if(attractions != null) {
             int i = 1;
             for(Attraction attraction : attractions._attractions_array) {
@@ -524,6 +522,11 @@ public class ChoiceActivity extends AppCompatActivity {
         prev_toast.show();
     }
     public void update_coins_lets_go_button(){
+        int sum = 0;
+        for(Attraction attraction: attractions._attractions_array){
+            sum += attractions_choices.get(attraction._key) * attraction._cost;
+        }
+        coins_left = max_coins - sum;
         lets_go_button_choice.setText(getResources().getString(R.string.button_lets_go) + "(" +
                 Integer.toString(coins_left) + ((coins_left == 1) ? " coin" : " coins") + " left)");
     }

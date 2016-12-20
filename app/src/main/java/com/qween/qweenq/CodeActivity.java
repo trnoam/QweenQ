@@ -726,7 +726,6 @@ public class CodeActivity extends AppCompatActivity {
                         if(codes_clone.isEmpty()) {
                             Intent intent = new Intent(CodeActivity.this_activity, ChoiceActivity.class);
                             intent.putExtra("parks attractions", parks_attractions);
-                            startActivity(intent);
                         }
                         return;
                     }else{//Code does not exist
