@@ -96,6 +96,7 @@ public class ChoiceActivity extends AppCompatActivity {
     public boolean is_calendar_active = false;
     public static ChoiceActivity this_choice_activity= null;
     public DataSnapshot park_sync_times = null;
+    public ValueEventListener full_times_changes = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -533,7 +534,7 @@ public class ChoiceActivity extends AppCompatActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
     }
-    public void on_lets_go_choice_clicked(View lets_go_choice_button){
+    public void on_lets_go_choice_clicked(final View lets_go_choice_button){
         if(!CodeActivity.isNetworkAvailable(ChoiceActivity.this)){
             my_toast("Please make sure you have an internet connection", Toast.LENGTH_SHORT);
             return;
@@ -554,7 +555,14 @@ public class ChoiceActivity extends AppCompatActivity {
         unanswered_answer_value.put("number of people", codes_choice_screen.size());
         unanswered_answer_value.put("is handled", false);
         main_ref.child("parks").child(Integer.toString(park_id_choice)).child("answers").child(main_code)
-                .setValue(unanswered_answer_value);
+                .setValue(unanswered_answer_value, new Firebase.CompletionListener() {
+                    @Override
+                    public void onComplete(FirebaseError firebaseError, Firebase firebase) {
+                        Snackbar.make(findViewById(R.id.main_choice_layout), "Please wait, your request is being handled",
+                                Snackbar.LENGTH_INDEFINITE).show();
+                        lets_go_choice_button.setVisibility(View.GONE);
+                    }
+                });
 
         Map<String, Object> request_value = new HashMap<>();
         request_value.put("attractions", attractions_choices);
@@ -578,9 +586,6 @@ public class ChoiceActivity extends AppCompatActivity {
                         my_toast("Internet Error!!!");
                     }
                 });
-
-        Snackbar.make(findViewById(R.id.main_choice_layout), "Please wait, your request is being handled",
-                Snackbar.LENGTH_INDEFINITE).show();
     }
     public boolean is_choice_empty(){;
         for(int amount_chosen : attractions_choices.values()){
@@ -634,14 +639,13 @@ public class ChoiceActivity extends AppCompatActivity {
                         String closing_time = sync_times.child("closing time").getValue(String.class);
                         int closing_time_minutes = text_to_minutes(closing_time, 0);
                         num_attractions_allowed_by_time = (closing_time_minutes - curr_time_minutes) / average_attraction_time;
-                        /*if(closing_time_minutes <= curr_time_minutes){
+                        if(!sync_times.child("full times").exists()){
                             my_toast("Sorry, park is closed right now", Toast.LENGTH_LONG);
                             ChoiceActivity.this.finish();
                             return;
-                        }*/
-                        //TODO
-                        if(num_attractions_allowed_by_time < attractions_counter){
-                            display_amount_attractions_to_user(num_attractions_allowed_by_time);
+                        }
+                        if(sync_times.child("full times").child("1").getChildrenCount() < attractions_counter){
+                            display_amount_attractions_to_user((int)sync_times.child("full times").child("1").getChildrenCount());
                         }
                     }
                     public void onCancelled(FirebaseError firebaseError) {
