@@ -16,7 +16,7 @@ import android.widget.ImageView;
 
 public class RoundedImageView extends ImageView {
 
-    public double RADIUS_WEIGHT = 0.85;
+    public double RADIUS_WEIGHT = 1;
     public RoundedImageView(Context context) {
         super(context);
     }

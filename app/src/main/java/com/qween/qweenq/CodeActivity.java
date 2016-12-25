@@ -715,6 +715,10 @@ public class CodeActivity extends AppCompatActivity {
                     if(dataSnapshot.hasChild("use")){//Code exists and there is only one park for it
                         codes_clone.remove(code);
                         if(codes_clone.isEmpty()) {
+                            if(prev_toast != null){
+                                prev_toast.cancel();
+                                prev_toast = null;
+                            }
                             Intent intent = new Intent(CodeActivity.this_activity, ChoiceActivity.class);
                             intent.putExtra("parks attractions", parks_attractions);
                             startActivity(intent);
@@ -724,8 +728,13 @@ public class CodeActivity extends AppCompatActivity {
                     if(dataSnapshot.hasChild(Integer.toString(park_id_code))){//This code belongs to several parks and exists
                         codes_clone.remove(code);
                         if(codes_clone.isEmpty()) {
+                            if(prev_toast != null){
+                                prev_toast.cancel();
+                                prev_toast = null;
+                            }
                             Intent intent = new Intent(CodeActivity.this_activity, ChoiceActivity.class);
                             intent.putExtra("parks attractions", parks_attractions);
+                            startActivity(intent);
                         }
                         return;
                     }else{//Code does not exist

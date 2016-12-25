@@ -9,6 +9,9 @@ import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
@@ -18,6 +21,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -28,6 +32,7 @@ import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -73,6 +78,7 @@ public class ChoiceActivity extends AppCompatActivity {
     public static FirebaseStorage storage;
     public static StorageReference storage_ref;
     public static final long TEN_MEGABYTE = 10 * 1024 * 1024;
+    public static final int IMAGE_PADDING = 7;
     public static long ATTRACTION_LAYOUT_HEIGHT = 250;
     public static AttractionsData attractions = null;
     public static Vector<View> views_vector;
@@ -186,9 +192,9 @@ public class ChoiceActivity extends AppCompatActivity {
         this_choice_activity.update_coins_lets_go_button();
         for(final Attraction attraction : attractions_data._attractions_array){
             final View times_choice;
-            final int amount_possible = Math.max(Math.min(this_choice_activity.attractions_maxes.get(attraction._key),
-                    this_choice_activity.coins_left / attraction._cost),
-                    this_choice_activity.attractions_choices.get(attraction._key));
+            final int amount_possible = Math.min(this_choice_activity.attractions_maxes.get(attraction._key),
+                    this_choice_activity.coins_left / attraction._cost +
+                            this_choice_activity.attractions_choices.get(attraction._key));
             switch(amount_possible){
                 case 0:
                     times_choice = new TextView(this_choice_activity);
@@ -253,8 +259,8 @@ public class ChoiceActivity extends AppCompatActivity {
                     }
                     times_choice = new Spinner(this_choice_activity);
                     ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>
-                            (this_choice_activity, android.R.layout.simple_spinner_dropdown_item, choices);
-                    spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item); // The drop down view
+                            (this_choice_activity, R.layout.spinner_dropdown_item, choices);
+                    spinnerArrayAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item); // The drop down view
                     ((Spinner)times_choice).setAdapter(spinnerArrayAdapter);
                     ((Spinner)times_choice).setSelection(this_choice_activity.attractions_choices.get(attraction._key));
                     times_choice.getBackground().setColorFilter(
@@ -262,9 +268,9 @@ public class ChoiceActivity extends AppCompatActivity {
                     ((Spinner)times_choice).setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int curr_choice, long id) {
-                            ((TextView) parentView.getChildAt(0)).setTextColor(
+                            /*((TextView) parentView.getChildAt(0)).setTextColor(
                                     ContextCompat.getColor(this_choice_activity, R.color.colorToolBar));
-                            ((TextView) parentView.getChildAt(0)).setTextSize(ATTRACTION_LAYOUT_HEIGHT / 20);
+                            ((TextView) parentView.getChildAt(0)).setTextSize(ATTRACTION_LAYOUT_HEIGHT / 20);*/
                             int prev_choice = 0;
                             if(this_choice_activity.attractions_choices.containsKey(attraction._key)) {
                                 prev_choice = this_choice_activity.attractions_choices.get(attraction._key);
@@ -330,7 +336,9 @@ public class ChoiceActivity extends AppCompatActivity {
             LinearLayout curr_layout = new LinearLayout(this_choice_activity);
             curr_layout.setOrientation(LinearLayout.HORIZONTAL);
             curr_layout.setGravity(Gravity.START);
-            curr_layout.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)ATTRACTION_LAYOUT_HEIGHT));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)ATTRACTION_LAYOUT_HEIGHT);
+            params.setMargins(0,0,0,0);
+            curr_layout.setLayoutParams(params);
 
             final LinearLayout choice_part = new LinearLayout(this_choice_activity);
             choice_part.setOrientation(LinearLayout.VERTICAL);
@@ -362,13 +370,13 @@ public class ChoiceActivity extends AppCompatActivity {
                     attraction_image_ref.getBytes(ChoiceActivity.TEN_MEGABYTE).addOnSuccessListener(new OnSuccessListener<byte[]>() {
                         @Override
                         public void onSuccess(byte[] bytes) {
+                            orginize_image(attraction, bytes, attraction_image,
+                                    this_choice_activity, attraction_dialog_window_image);
                             String image_as_string = Base64.encodeToString(bytes, Base64.NO_WRAP);
                             editor_choice = data_choice.edit();
                             editor_choice.putString("attraction" + attraction._key + "park" +
                                     park_id_choice, image_as_string);
                             editor_choice.apply();
-                            orginize_image(attraction, bytes, attraction_image,
-                                    this_choice_activity, attraction_dialog_window_image);
                         }
                     }
                     ).addOnFailureListener(new OnFailureListener() {
@@ -647,11 +655,47 @@ public class ChoiceActivity extends AppCompatActivity {
                         if(sync_times.child("full times").child("1").getChildrenCount() < attractions_counter){
                             display_amount_attractions_to_user((int)sync_times.child("full times").child("1").getChildrenCount());
                         }
+                        if(full_times_changes == null){
+                            full_times_changes = new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot sync_times) {
+                                    park_sync_times = sync_times;
+                                    if(attractions_maxes == null){
+                                        init_choices_and_maxes();
+                                    }
+                                    Boolean is_choices_possible = is_choices_still_possible();
+                                    if(!is_choices_possible){
+                                        my_toast("Choices no longer possible, please choose again", Toast.LENGTH_LONG);
+                                    }
+                                    load_components(attractions_data_for_load_components, !is_choices_possible);
+                                }
+
+                                @Override
+                                public void onCancelled(FirebaseError firebaseError) {
+                                    my_toast("Internet error!!!");
+                                }
+                            };
+                            main_ref.child("parks").child(Integer.toString(park_id_choice)).child("sync times").addValueEventListener(full_times_changes);
+                        }
+
                     }
                     public void onCancelled(FirebaseError firebaseError) {
                         my_toast("Internet Error!!!");
                     }
                 });
+    }
+    public boolean is_choices_still_possible(){
+        Map<String, Integer> prev_choice = new HashMap<String, Integer>(attractions_choices);
+        init_choices_and_maxes();
+        for(String key : prev_choice.keySet()){
+            if(attractions_maxes.get(key) < prev_choice.get(key)){
+                return false;
+            }else{
+                choice_algorithm(Integer.parseInt(key), prev_choice.get(key));
+            }
+        }
+        attractions_choices = new HashMap<String, Integer>(prev_choice);
+        return true;
     }
     public void display_amount_attractions_to_user(int num_attractions){
         my_toast("Due to park's closing time, the maximum amount of attractions is " + num_attractions, 10 * 3500);
@@ -664,20 +708,39 @@ public class ChoiceActivity extends AppCompatActivity {
         final int imageWidthInPX = size.x;
         final Bitmap unscaled_bm = BitmapFactory.decodeByteArray(image, 0, image.length);
         final Bitmap scaled_bm = Bitmap.createScaledBitmap(unscaled_bm,imageWidthInPX,imageWidthInPX, true);
+        final Bitmap small_scaled_bm = Bitmap.createScaledBitmap(unscaled_bm,
+                (int)ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, (int)ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, true);
         DisplayMetrics dm = new DisplayMetrics();
         this_choice_activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
 
-        attraction_image.setImageBitmap(scaled_bm );
+        attraction_image.setImageBitmap(small_scaled_bm);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                (int) ATTRACTION_LAYOUT_HEIGHT, (int) ATTRACTION_LAYOUT_HEIGHT);
+                (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING);
         layoutParams.gravity = Gravity.CENTER;
+        layoutParams.setMargins(IMAGE_PADDING, IMAGE_PADDING, IMAGE_PADDING, IMAGE_PADDING);
         attraction_image.setLayoutParams(layoutParams);
         attraction_dialog_window_image.setImageBitmap(scaled_bm);
-                        /*int height = (int)(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 350,
-                                getResources().getDisplayMetrics()) + 0.5);//stack overflow dialog image*/
-                        /*attraction_dialog_window_image.setLayoutParams(
-                                new LinearLayout.LayoutParams((int)LinearLayout.LayoutParams.MATCH_PARENT,
-                                        (int)LinearLayout.LayoutParams.MATCH_PARENT));*/
+
+        attraction_image.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        attraction_image.getDrawable().setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_ATOP);
+                        this_choice_activity.my_toast("down");
+                        break;
+                    }
+                    case MotionEvent.ACTION_UP:
+                        attraction_image.getDrawable().clearColorFilter();
+                        this_choice_activity.my_toast("up");
+                        break;
+                    case MotionEvent.ACTION_CANCEL: {
+                        break;
+                    }
+                }
+                return false;
+            }
+        });
         attraction_image.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -685,7 +748,7 @@ public class ChoiceActivity extends AppCompatActivity {
                     // custom dialog
                     final Dialog dialog = new Dialog(ChoiceActivity.this_choice_activity);
                     dialog.setContentView(R.layout.attraction_image_view);
-                    dialog.setTitle(curr_attraction._name);
+                    dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
 
                     // set the custom dialog components - text, image and button
@@ -702,6 +765,9 @@ public class ChoiceActivity extends AppCompatActivity {
                     att_image.setImageBitmap(scaled_bm );
                     att_image.setLayoutParams(new LinearLayout.LayoutParams(
                             imageWidthInPX, imageWidthInPX));
+
+                    TextView title = (TextView)dialog.findViewById(R.id.image_title_choice);
+                    title.setText(curr_attraction._name);
 
                     Button ok_image = (Button) dialog.findViewById(R.id.ok_attraction_image_dialog);
                     ok_image.setOnClickListener(new View.OnClickListener() {
