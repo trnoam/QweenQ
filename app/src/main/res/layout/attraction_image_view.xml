@@ -12,22 +12,27 @@
         android:layout_height="wrap_content"
         android:id="@+id/image_title_choice"
         android:textColor="@color/black"
-        android:textSize="24sp" />
+        android:textSize="24sp"
+        android:layout_weight="1" />
 
     <ImageView
         android:id="@+id/attraction_image_dialog"
         app:layout_widthPercent="100%"
         app:layout_aspectRatio="100%"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_weight="0" />
 
     <Button
         android:text="OK"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
         android:id="@+id/ok_attraction_image_dialog"
         android:minHeight="50dp"
         android:textColor="@color/colorToolBar"
         android:textSize="24sp"
-        android:background="?attr/selectableItemBackground" />
+        android:background="?attr/selectableItemBackground"
+        android:minWidth="0dp"
+        android:layout_weight="1"
+        android:layout_height="50dp"
+        android:height="50dp" />
 </LinearLayout>

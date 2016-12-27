@@ -9,9 +9,12 @@ import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
@@ -78,7 +81,7 @@ public class ChoiceActivity extends AppCompatActivity {
     public static FirebaseStorage storage;
     public static StorageReference storage_ref;
     public static final long TEN_MEGABYTE = 10 * 1024 * 1024;
-    public static final int IMAGE_PADDING = 7;
+    public static final int IMAGE_PADDING = 10;
     public static long ATTRACTION_LAYOUT_HEIGHT = 250;
     public static AttractionsData attractions = null;
     public static Vector<View> views_vector;
@@ -103,6 +106,7 @@ public class ChoiceActivity extends AppCompatActivity {
     public static ChoiceActivity this_choice_activity= null;
     public DataSnapshot park_sync_times = null;
     public ValueEventListener full_times_changes = null;
+    public static final double PART_OF_SCREEN_HEIGHT_DESCRIPTION_DIALOG = 0.7 / 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -408,12 +412,15 @@ public class ChoiceActivity extends AppCompatActivity {
                         // custom dialog
                         final Dialog dialog = new Dialog(ChoiceActivity.this_choice_activity);
                         dialog.setContentView(R.layout.description_view);
-                        dialog.setTitle(attraction._name);
+                        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
 
 
                         // set the custom dialog components - text, image and button
                         TextView text = (TextView) dialog.findViewById(R.id.description_text);
                         text.setText(attraction._description);
+
+                        TextView title = (TextView)dialog.findViewById(R.id.title_description_view_choice);
+                        title.setText(attraction._name);
 
                         Button ok_description = (Button) dialog.findViewById(R.id.ok_description);
                         ok_description.setOnClickListener(new View.OnClickListener() {
@@ -423,12 +430,10 @@ public class ChoiceActivity extends AppCompatActivity {
                             }
                         });
 
-                        /*dialogButton.setOnClickListener(new OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                dialog.dismiss();
-                            }
-                        });*/
+                        Display display = this_choice_activity.getWindowManager().getDefaultDisplay();
+                        Point size = new Point();
+                        display.getSize(size);
+                        //final int height_of_dialog = size.y / 1.3;
 
                         WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
                         lp.copyFrom(dialog.getWindow().getAttributes());
@@ -710,8 +715,13 @@ public class ChoiceActivity extends AppCompatActivity {
         final Bitmap scaled_bm = Bitmap.createScaledBitmap(unscaled_bm,imageWidthInPX,imageWidthInPX, true);
         final Bitmap small_scaled_bm = Bitmap.createScaledBitmap(unscaled_bm,
                 (int)ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, (int)ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, true);
-        DisplayMetrics dm = new DisplayMetrics();
-        this_choice_activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
+
+        int gray_filter = Color.argb(150,200,200,200);
+        final Bitmap gray_bitmap = Bitmap.createBitmap(small_scaled_bm, 0, 0,
+                small_scaled_bm.getWidth(), small_scaled_bm.getHeight());
+        final Paint p = new Paint();
+        ColorFilter filter = new LightingColorFilter(gray_filter, 1);
+        p.setColorFilter(filter);
 
         attraction_image.setImageBitmap(small_scaled_bm);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
@@ -726,17 +736,14 @@ public class ChoiceActivity extends AppCompatActivity {
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 switch (motionEvent.getAction()) {
                     case MotionEvent.ACTION_DOWN: {
-                        attraction_image.getDrawable().setColorFilter(Color.BLUE, PorterDuff.Mode.SRC_ATOP);
-                        this_choice_activity.my_toast("down");
+                        attraction_image.setImageBitmap(gray_bitmap);
+                        Canvas canvas = new Canvas(gray_bitmap);
+                        canvas.drawBitmap(gray_bitmap, 0, 0, p);
                         break;
                     }
                     case MotionEvent.ACTION_UP:
-                        attraction_image.getDrawable().clearColorFilter();
-                        this_choice_activity.my_toast("up");
+                        attraction_image.setImageBitmap(small_scaled_bm);
                         break;
-                    case MotionEvent.ACTION_CANCEL: {
-                        break;
-                    }
                 }
                 return false;
             }
@@ -753,14 +760,6 @@ public class ChoiceActivity extends AppCompatActivity {
 
                     // set the custom dialog components - text, image and button
                     ImageView att_image = (ImageView)dialog.findViewById(R.id.attraction_image_dialog);
-                    Display display = this_choice_activity.getWindowManager().getDefaultDisplay();
-                    Point size = new Point();
-                    display.getSize(size);
-                    final int imageWidthInPX = size.x;
-                    final Bitmap unscaled_bm = BitmapFactory.decodeByteArray(image, 0, image.length);
-                    final Bitmap scaled_bm = Bitmap.createScaledBitmap(unscaled_bm,imageWidthInPX,imageWidthInPX, true);
-                    DisplayMetrics dm = new DisplayMetrics();
-                    this_choice_activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
 
                     att_image.setImageBitmap(scaled_bm );
                     att_image.setLayoutParams(new LinearLayout.LayoutParams(
