@@ -78,11 +78,11 @@ public class CodeActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setSupportActionBar(toolbar);
         set_attraction_layout_height();
+        starting_choice_activity = false;
 
         data = PreferenceManager.getDefaultSharedPreferences(this);
-        lets_go_button = (Button)findViewById(R.id.lets_go);
-        add_rider_button = (Button)findViewById(R.id.add_rider);
         edit_code_text_field = (EditText)findViewById(R.id.edit_code);
+        add_buttons_click_listeners();
 
         edit_code_text_field.requestFocus();
 
@@ -120,52 +120,6 @@ public class CodeActivity extends AppCompatActivity {
         }
 
         this_activity = this;
-        add_rider_button.setOnClickListener(
-                new View.OnClickListener()
-                {
-                    public void onClick(View view)
-                    {
-                        if(!isNetworkAvailable(CodeActivity.this)) {
-                            my_toast("Please make sure you have an internet connection");
-                            return;
-                        }
-                        add_code(edit_code_text_field.getText().toString(), false);
-                    }
-                });
-        lets_go_button.setOnClickListener(new View.OnClickListener()
-        {
-            public void onClick(View view)
-            {
-                if(!isNetworkAvailable(CodeActivity.this)) {
-                    my_toast("Please make sure you have an internet connection");
-                    return;
-                }
-
-                if (codes == null) {
-                    if(!edit_code_text_field.getText().toString().equals("")){
-                        add_code(edit_code_text_field.getText().toString(), true);
-                        return;
-                    }
-                    my_toast("No codes inserted");
-                    return;
-                }
-                if (!edit_code_text_field.getText().toString().equals("")) {
-                    if (codes.contains(edit_code_text_field.getText().toString())) {
-                        download_park_attractions(park_id_code, true);
-                    } else {
-                        add_code(edit_code_text_field.getText().toString(), true);
-                        return;
-                    }
-                } else {
-                    if (codes.isEmpty()) {
-                        my_toast("No codes inserted");
-                        return;
-                    }
-                    download_park_attractions(park_id_code, true);
-                }
-
-            }
-        });
     }
 
     @Override
@@ -194,19 +148,26 @@ public class CodeActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
     }
+    protected void onResume(){
+        super.onResume();
+        add_buttons_click_listeners();
+        starting_choice_activity = false;}
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         super.onSaveInstanceState(savedInstanceState);
+        add_buttons_click_listeners();
     }
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
+        add_buttons_click_listeners();
     }
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         parks_attractions = null;
+        add_buttons_click_listeners();
     }
     public void my_toast(String message){
         if(prev_toast != null){
@@ -771,6 +732,56 @@ public class CodeActivity extends AppCompatActivity {
             @Override
             public void onCancelled(FirebaseError firebaseError) {
                 my_toast("Internet error!!!");
+            }
+        });
+    }
+    void add_buttons_click_listeners(){
+        lets_go_button = (Button)findViewById(R.id.lets_go);
+        add_rider_button = (Button)findViewById(R.id.add_rider);
+        add_rider_button.setOnClickListener(
+                new View.OnClickListener()
+                {
+                    public void onClick(View view)
+                    {
+                        if(!isNetworkAvailable(CodeActivity.this)) {
+                            my_toast("Please make sure you have an internet connection");
+                            return;
+                        }
+                        add_code(edit_code_text_field.getText().toString(), false);
+                    }
+                });
+        lets_go_button.setOnClickListener(new View.OnClickListener()
+        {
+            public void onClick(View view)
+            {
+                if(!isNetworkAvailable(CodeActivity.this)) {
+                    my_toast("Please make sure you have an internet connection");
+                    return;
+                }
+
+                if (codes == null) {
+                    if(!edit_code_text_field.getText().toString().equals("")){
+                        add_code(edit_code_text_field.getText().toString(), true);
+                        return;
+                    }
+                    my_toast("No codes inserted");
+                    return;
+                }
+                if (!edit_code_text_field.getText().toString().equals("")) {
+                    if (codes.contains(edit_code_text_field.getText().toString())) {
+                        download_park_attractions(park_id_code, true);
+                    } else {
+                        add_code(edit_code_text_field.getText().toString(), true);
+                        return;
+                    }
+                } else {
+                    if (codes.isEmpty()) {
+                        my_toast("No codes inserted");
+                        return;
+                    }
+                    download_park_attractions(park_id_code, true);
+                }
+
             }
         });
     }
