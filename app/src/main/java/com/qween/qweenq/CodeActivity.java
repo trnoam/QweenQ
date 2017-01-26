@@ -1,6 +1,7 @@
 package com.qween.qweenq;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -69,6 +70,7 @@ public class CodeActivity extends AppCompatActivity {
     public int curr_park_id = 0;
     public boolean starting_choice_activity = false;
     public Firebase parks_ref = null;
+    public ProgressDialog mProgressDialog = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -195,6 +197,13 @@ public class CodeActivity extends AppCompatActivity {
                     return;
                 }
             }
+        }
+        if(is_choice_activity && mProgressDialog == null) {
+            mProgressDialog = new ProgressDialog(this);
+            mProgressDialog.setMessage("Please wait...");
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
         }
         final String finalCode = code;
         main_ref.child(code).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -663,7 +672,6 @@ public class CodeActivity extends AppCompatActivity {
         starting_choice_activity = true;
         codes_clone = new HashSet<String>();
         codes_clone.addAll(codes);
-        my_toast("Syncing codes...");
         final Firebase main_ref = new Firebase("https://qweenq-48917.firebaseio.com/codes");
         for(final String code: codes){
             main_ref.child(code).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -712,6 +720,13 @@ public class CodeActivity extends AppCompatActivity {
         }
     }
     void download_park_attractions(int the_park_id, final boolean is_choice_activity){
+        if (is_choice_activity && mProgressDialog == null){
+            mProgressDialog = new ProgressDialog(this);
+            mProgressDialog.setMessage("Please wait...");
+            mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
+        }
         if(parks_attractions != null){
             if(is_choice_activity){
                 start_choice_activity();
@@ -772,7 +787,6 @@ public class CodeActivity extends AppCompatActivity {
                         download_park_attractions(park_id_code, true);
                     } else {
                         add_code(edit_code_text_field.getText().toString(), true);
-                        return;
                     }
                 } else {
                     if (codes.isEmpty()) {

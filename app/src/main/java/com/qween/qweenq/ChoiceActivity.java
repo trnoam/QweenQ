@@ -2,6 +2,7 @@ package com.qween.qweenq;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -19,6 +20,8 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -44,6 +47,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -107,6 +111,8 @@ public class ChoiceActivity extends AppCompatActivity {
     public DataSnapshot park_sync_times = null;
     public ValueEventListener full_times_changes = null;
     public static final double PART_OF_SCREEN_HEIGHT_DESCRIPTION_DIALOG = 0.7 / 1;
+    public static Vector<ProgressBar> progressBars = null;
+    public static Vector<Boolean> is_image_loaded = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,6 +162,8 @@ public class ChoiceActivity extends AppCompatActivity {
             return;
         }
         images_vector = new Vector<>();
+        progressBars = new Vector<>();
+        is_image_loaded = new Vector<>();
         main_ref = new Firebase("https://qweenq-48917.firebaseio.com/");
         main_ref.child("parks").child(Integer.toString(park_id_choice)).child("name").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -337,7 +345,7 @@ public class ChoiceActivity extends AppCompatActivity {
         }
         int i = 0;
         for(final Attraction attraction : attractions_data._attractions_array){
-            LinearLayout curr_layout = new LinearLayout(this_choice_activity);
+            final LinearLayout curr_layout = new LinearLayout(this_choice_activity);
             curr_layout.setOrientation(LinearLayout.HORIZONTAL);
             curr_layout.setGravity(Gravity.START);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)ATTRACTION_LAYOUT_HEIGHT);
@@ -359,7 +367,16 @@ public class ChoiceActivity extends AppCompatActivity {
             choice_part.addView(costs_vector.elementAt(i));
 
             curr_layout.addView(choice_part);
+
             if(is_first) {
+                this_choice_activity.is_image_loaded.addElement(false);
+                final ProgressBar progressBar = new ProgressBar(this_choice_activity, null, android.R.attr.progressBarStyle);
+                progressBar.setLayoutParams(new LinearLayout.LayoutParams(
+                        (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING));
+                progressBar.setVisibility(View.VISIBLE);
+                curr_layout.addView(progressBar);
+                progressBars.add(progressBar);
+
                 StorageReference attraction_image_ref = storage_ref.child("images/" +  attraction._picture);
                 final RoundedImageView attraction_image = new RoundedImageView(this_choice_activity);
                 attraction_image.setClickable(true);
@@ -369,18 +386,25 @@ public class ChoiceActivity extends AppCompatActivity {
                             "");
                     byte[] image = Base64.decode(image_as_string, Base64.DEFAULT);
                     orginize_image(attraction, image, attraction_image, this_choice_activity, attraction_dialog_window_image);
+                    this_choice_activity.is_image_loaded.set(i, true);
+                    ((ViewGroup)progressBars.elementAt(i).getParent()).removeView(progressBars.elementAt(i));
+                    progressBars.elementAt(i).setVisibility(View.INVISIBLE);
                 }
                 else {
+                    final int finalI = i;
                     attraction_image_ref.getBytes(ChoiceActivity.TEN_MEGABYTE).addOnSuccessListener(new OnSuccessListener<byte[]>() {
                         @Override
                         public void onSuccess(byte[] bytes) {
                             orginize_image(attraction, bytes, attraction_image,
                                     this_choice_activity, attraction_dialog_window_image);
+                            this_choice_activity.is_image_loaded.set(finalI, true);
                             String image_as_string = Base64.encodeToString(bytes, Base64.NO_WRAP);
                             editor_choice = data_choice.edit();
                             editor_choice.putString("attraction" + attraction._key + "park" +
                                     park_id_choice, image_as_string);
                             editor_choice.apply();
+                            ((ViewGroup)progressBars.elementAt(finalI).getParent()).removeView(progressBars.elementAt(finalI));
+                            progressBars.elementAt(finalI).setVisibility(View.INVISIBLE);
                         }
                     }
                     ).addOnFailureListener(new OnFailureListener() {
@@ -393,6 +417,12 @@ public class ChoiceActivity extends AppCompatActivity {
                 images_vector.addElement(attraction_image);
                 curr_layout.addView(attraction_image);
             }else{
+                if((ViewGroup)progressBars.elementAt(i).getParent() != null) {
+                    ((ViewGroup) progressBars.elementAt(i).getParent()).removeView(progressBars.elementAt(i));
+                }
+                if(!this_choice_activity.is_image_loaded.elementAt(i)) {
+                    curr_layout.addView(progressBars.elementAt(i));
+                }
                 ((ViewGroup)images_vector.elementAt(i).getParent()).removeView(images_vector.elementAt(i));
                 curr_layout.addView(images_vector.elementAt(i));
                 images_vector.elementAt(i).setClickable(true);
