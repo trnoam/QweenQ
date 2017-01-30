@@ -1,9 +1,6 @@
 package com.qween.qweenq;
 
-import android.app.Activity;
 import android.app.Dialog;
-import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -13,31 +10,25 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.util.ArrayMap;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutCompat;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Base64;
-import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -48,6 +39,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -110,9 +102,9 @@ public class ChoiceActivity extends AppCompatActivity {
     public static ChoiceActivity this_choice_activity= null;
     public DataSnapshot park_sync_times = null;
     public ValueEventListener full_times_changes = null;
-    public static final double PART_OF_SCREEN_HEIGHT_DESCRIPTION_DIALOG = 0.7 / 1;
     public static Vector<ProgressBar> progressBars = null;
     public static Vector<Boolean> is_image_loaded = null;
+    public static Vector<RelativeLayout> progress_bars_layouts = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,6 +156,7 @@ public class ChoiceActivity extends AppCompatActivity {
         images_vector = new Vector<>();
         progressBars = new Vector<>();
         is_image_loaded = new Vector<>();
+        progress_bars_layouts = new Vector<>();
         main_ref = new Firebase("https://qweenq-48917.firebaseio.com/");
         main_ref.child("parks").child(Integer.toString(park_id_choice)).child("name").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -190,6 +183,45 @@ public class ChoiceActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_choice, menu);
         return super.onCreateOptionsMenu(menu);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+
+        int id = item.getItemId();
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.set_trip_finish_time) {
+            // custom dialog
+            final Dialog dialog = new Dialog(ChoiceActivity.this_choice_activity);
+            dialog.setContentView(R.layout.set_finish_time_dialog);
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+
+            // set the custom dialog components - button
+            Button ok_set_finish_time= (Button) dialog.findViewById(R.id.ok_set_finish_time);
+            ok_set_finish_time.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    dialog.dismiss();
+                }
+            });
+
+            Display display = this_choice_activity.getWindowManager().getDefaultDisplay();
+            Point size = new Point();
+            display.getSize(size);
+            //final int height_of_dialog = size.y / 1.3;
+
+            WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+            lp.copyFrom(dialog.getWindow().getAttributes());
+            lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+            lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            dialog.show();
+            dialog.getWindow().setAttributes(lp);
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
     public static void load_components(AttractionsData attractions_data, Boolean is_first){
         LinearLayout attractions_layout = (LinearLayout)this_choice_activity.findViewById(R.id.attractions_layout);
@@ -270,6 +302,7 @@ public class ChoiceActivity extends AppCompatActivity {
                         choices.add(j, Integer.toString(j));
                     }
                     times_choice = new Spinner(this_choice_activity);
+                    ((Spinner)times_choice).setDropDownWidth((int)ATTRACTION_LAYOUT_HEIGHT);
                     ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>
                             (this_choice_activity, R.layout.spinner_dropdown_item, choices);
                     spinnerArrayAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item); // The drop down view
@@ -369,13 +402,22 @@ public class ChoiceActivity extends AppCompatActivity {
             curr_layout.addView(choice_part);
 
             if(is_first) {
+                final RelativeLayout progress_bar_layout = new RelativeLayout(this_choice_activity);
+                LinearLayout.LayoutParams temp_params = new LinearLayout.LayoutParams(
+                        (int) ATTRACTION_LAYOUT_HEIGHT, (int) ATTRACTION_LAYOUT_HEIGHT);
+                temp_params.gravity = Gravity.CENTER;
+                progress_bar_layout.setLayoutParams(temp_params);
                 this_choice_activity.is_image_loaded.addElement(false);
                 final ProgressBar progressBar = new ProgressBar(this_choice_activity, null, android.R.attr.progressBarStyle);
-                progressBar.setLayoutParams(new LinearLayout.LayoutParams(
-                        (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING, (int) ATTRACTION_LAYOUT_HEIGHT - 2 * IMAGE_PADDING));
+                RelativeLayout.LayoutParams layout_params = new RelativeLayout.LayoutParams((int) ATTRACTION_LAYOUT_HEIGHT / 3,
+                        (int) ATTRACTION_LAYOUT_HEIGHT / 3);
+                layout_params.addRule(RelativeLayout.CENTER_IN_PARENT);
+                progressBar.setLayoutParams(layout_params);
                 progressBar.setVisibility(View.VISIBLE);
-                curr_layout.addView(progressBar);
+                progress_bar_layout.addView(progressBar);
+                curr_layout.addView(progress_bar_layout);
                 progressBars.add(progressBar);
+                progress_bars_layouts.add(progress_bar_layout);
 
                 StorageReference attraction_image_ref = storage_ref.child("images/" +  attraction._picture);
                 final RoundedImageView attraction_image = new RoundedImageView(this_choice_activity);
@@ -385,26 +427,28 @@ public class ChoiceActivity extends AppCompatActivity {
                     String image_as_string = data_choice.getString("attraction" + attraction._key + "park" + park_id_choice,
                             "");
                     byte[] image = Base64.decode(image_as_string, Base64.DEFAULT);
-                    orginize_image(attraction, image, attraction_image, this_choice_activity, attraction_dialog_window_image);
                     this_choice_activity.is_image_loaded.set(i, true);
                     ((ViewGroup)progressBars.elementAt(i).getParent()).removeView(progressBars.elementAt(i));
                     progressBars.elementAt(i).setVisibility(View.INVISIBLE);
+                    ((ViewGroup)progress_bars_layouts.elementAt(i).getParent()).removeView(progress_bars_layouts.elementAt(i));
+                    orginize_image(attraction, image, attraction_image, this_choice_activity, attraction_dialog_window_image);
                 }
                 else {
                     final int finalI = i;
                     attraction_image_ref.getBytes(ChoiceActivity.TEN_MEGABYTE).addOnSuccessListener(new OnSuccessListener<byte[]>() {
                         @Override
                         public void onSuccess(byte[] bytes) {
+                            this_choice_activity.is_image_loaded.set(finalI, true);
+                            ((ViewGroup)progressBars.elementAt(finalI).getParent()).removeView(progressBars.elementAt(finalI));
+                            progressBars.elementAt(finalI).setVisibility(View.INVISIBLE);
+                            ((ViewGroup)progress_bars_layouts.elementAt(finalI).getParent()).removeView(progress_bars_layouts.elementAt(finalI));
                             orginize_image(attraction, bytes, attraction_image,
                                     this_choice_activity, attraction_dialog_window_image);
-                            this_choice_activity.is_image_loaded.set(finalI, true);
                             String image_as_string = Base64.encodeToString(bytes, Base64.NO_WRAP);
                             editor_choice = data_choice.edit();
                             editor_choice.putString("attraction" + attraction._key + "park" +
                                     park_id_choice, image_as_string);
                             editor_choice.apply();
-                            ((ViewGroup)progressBars.elementAt(finalI).getParent()).removeView(progressBars.elementAt(finalI));
-                            progressBars.elementAt(finalI).setVisibility(View.INVISIBLE);
                         }
                     }
                     ).addOnFailureListener(new OnFailureListener() {
@@ -417,13 +461,13 @@ public class ChoiceActivity extends AppCompatActivity {
                 images_vector.addElement(attraction_image);
                 curr_layout.addView(attraction_image);
             }else{
-                if((ViewGroup)progressBars.elementAt(i).getParent() != null) {
-                    ((ViewGroup) progressBars.elementAt(i).getParent()).removeView(progressBars.elementAt(i));
-                }
-                if(!this_choice_activity.is_image_loaded.elementAt(i)) {
-                    curr_layout.addView(progressBars.elementAt(i));
+                if((ViewGroup)progress_bars_layouts.elementAt(i).getParent() != null) {
+                    ((ViewGroup) progress_bars_layouts.elementAt(i).getParent()).removeView(progress_bars_layouts.elementAt(i));
                 }
                 ((ViewGroup)images_vector.elementAt(i).getParent()).removeView(images_vector.elementAt(i));
+                if(!is_image_loaded.elementAt(i)){
+                    curr_layout.addView(progress_bars_layouts.elementAt(i));
+                }
                 curr_layout.addView(images_vector.elementAt(i));
                 images_vector.elementAt(i).setClickable(true);
             }

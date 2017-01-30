@@ -91,4 +91,7 @@
     <string name="im_employee">I\'m an employee</string>
     <string name="title_activity_employee_choice">EmployeeChoiceActivity</string>
     <string name="title_activity_employee_password">EmployeePasswordActivity</string>
+    <string name="set_trip_end">Set trip end</string>
+    <string name="finish_time_title">Finish Time</string>
+    <string name="finish_time_instructions">You may set a finish time for your trip but this will limit the maximum number of attractions</string>
 </resources>

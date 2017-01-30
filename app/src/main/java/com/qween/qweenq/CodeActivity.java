@@ -691,6 +691,7 @@ public class CodeActivity extends AppCompatActivity {
                             Intent intent = new Intent(CodeActivity.this_activity, ChoiceActivity.class);
                             intent.putExtra("parks attractions", parks_attractions);
                             startActivity(intent);
+                            mProgressDialog.cancel();
                         }
                         return;
                     }
@@ -704,6 +705,7 @@ public class CodeActivity extends AppCompatActivity {
                             Intent intent = new Intent(CodeActivity.this_activity, ChoiceActivity.class);
                             intent.putExtra("parks attractions", parks_attractions);
                             startActivity(intent);
+                            mProgressDialog.cancel();
                         }
                         return;
                     }else{//Code does not exist

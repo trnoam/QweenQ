@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:id="@+id/finish_time_dialog_layout"
+    android:visibility="visible"
+    android:background="@color/White">
+
+    <!--<TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/title_finish_time_dialog"
+        android:textColor="@color/black"
+        android:textSize="24sp"
+        android:background="@color/White"
+        android:visibility="visible"
+        android:minHeight="50dp"
+        android:layout_alignParentStart="false"
+        android:layout_above="@+id/description_scroll_view"
+        android:text="@string/finish_time_title" />-->
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/finish_time_instructions_text"
+        android:visibility="visible"
+        android:textColor="@color/black"
+        android:text="@string/finish_time_instructions"
+        android:textSize="24sp" />
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:id="@+id/max_hour_choice"
+        android:layout_height="45dp"
+        android:dropDownWidth="match_parent" />
+
+    <Button
+        android:text="OK"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:id="@+id/ok_set_finish_time"
+        android:minHeight="50dp"
+        android:textColor="@color/colorToolBar"
+        android:textSize="24sp"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="visible"
+        android:height="50dp"
+        android:layout_alignParentBottom="false"
+        android:layout_below="@+id/description_scroll_view" />
+
+</LinearLayout>

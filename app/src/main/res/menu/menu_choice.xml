@@ -2,4 +2,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.qween.qweenq.ChoiceActivity">
+
+    <item
+        android:id="@+id/set_trip_finish_time"
+        android:title="@string/set_trip_end"
+        app:showAsAction="never"/>
 </menu>
