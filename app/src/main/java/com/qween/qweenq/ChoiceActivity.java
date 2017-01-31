@@ -67,6 +67,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
 public class ChoiceActivity extends AppCompatActivity {
@@ -83,9 +85,6 @@ public class ChoiceActivity extends AppCompatActivity {
     public static Vector<View> views_vector;
     public static Vector<View> costs_vector;
     public static int max_width_choice_part;
-    public static final int LANDSCAPE_WEIGHT = 5;
-    public static final int PORTRAIT_WEIGHT = 10;
-    public static final int PORTRAIT_DEFAULT = 8;
     public static Vector<RoundedImageView> images_vector;
     public static SharedPreferences data_choice;
     public static Map<String, Integer> attractions_choices = null;
@@ -100,11 +99,17 @@ public class ChoiceActivity extends AppCompatActivity {
     public static SharedPreferences.Editor editor_choice;
     public boolean is_calendar_active = false;
     public static ChoiceActivity this_choice_activity= null;
+    public DataSnapshot park_full_times = null;
     public DataSnapshot park_sync_times = null;
     public ValueEventListener full_times_changes = null;
     public static Vector<ProgressBar> progressBars = null;
     public static Vector<Boolean> is_image_loaded = null;
     public static Vector<RelativeLayout> progress_bars_layouts = null;
+    public static int current_time = -1;
+    public static Timer clock_updater = null;
+    public static TextView clock = null;
+    public static int[] user_impossible_times = null;
+    public static int min_time_components = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,6 +130,11 @@ public class ChoiceActivity extends AppCompatActivity {
             my_toast("Error!", Toast.LENGTH_LONG);
             ChoiceActivity.this.finish();
         }
+        clock = null;
+        if(clock_updater != null) {
+            clock_updater.cancel();
+        }
+        clock_updater = null;
         views_vector= new Vector<>();
         costs_vector = new Vector<>();
         max_width_choice_part = -1;
@@ -232,6 +242,9 @@ public class ChoiceActivity extends AppCompatActivity {
         attractions = attractions_data;
         if(is_first){
             this_choice_activity.init_choices_and_maxes();
+        }
+        if(this_choice_activity.min_time_components != -1){
+            this_choice_activity.update_max_trip_hour();
         }
         this_choice_activity.update_coins_lets_go_button();
         for(final Attraction attraction : attractions_data._attractions_array){
@@ -580,7 +593,7 @@ public class ChoiceActivity extends AppCompatActivity {
             for(Attraction attraction : attractions._attractions_array) {
                 attractions_choices.put(Integer.toString(i), 0);
                 attractions_maxes.put(Integer.toString(i), Math.min(
-                        sum_zeros(park_sync_times.child("full times").child(attraction._key)),
+                        sum_zeros(park_full_times.child(attraction._key)),
                         attraction._max));
                 i++;
             }
@@ -615,8 +628,8 @@ public class ChoiceActivity extends AppCompatActivity {
             sum += attractions_choices.get(attraction._key) * attraction._cost;
         }
         coins_left = max_coins - sum;
-        lets_go_button_choice.setText(getResources().getString(R.string.button_lets_go) + "(" +
-                Integer.toString(coins_left) + ((coins_left == 1) ? " coin" : " coins") + " left)");
+        lets_go_button_choice.setText(getResources().getString(R.string.button_lets_go) + "(" + ((coins_left > 1) ? Integer.toString(coins_left) : "NO") +
+                ((coins_left == 1) ? " coin" : " coins") + " left)");
     }
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
@@ -664,6 +677,7 @@ public class ChoiceActivity extends AppCompatActivity {
                         if(answer.child("is handled").getValue(Boolean.class) && !is_calendar_active){
                             DataSnapshot attractions_times = answer.child("attractions times");
                             Intent intent = new Intent(ChoiceActivity.this, CalendarActivity.class);
+                            intent.putExtra("parks attractions", attractions);
                             startActivity(intent);
                             is_calendar_active = true;
                         }
@@ -686,88 +700,77 @@ public class ChoiceActivity extends AppCompatActivity {
         if(main_ref == null){
             main_ref = new Firebase("https://qweenq-48917.firebaseio.com/");
         }
-        main_ref.child("parks").child(Integer.toString(park_id_choice)).child("sync times").
-                addListenerForSingleValueEvent(new ValueEventListener() {
+        main_ref.child("parks").child(Integer.toString(park_id_choice)).child("sync times").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot sync_times) {
+                park_sync_times = sync_times;
+                park_full_times = sync_times.child("full times");
+                if(!sync_times.child("full times").exists()){
+                    my_toast("Sorry, park is closed right now", Toast.LENGTH_LONG);
+                    ChoiceActivity.this.finish();
+                    return;
+                }
+                load_components(attractions_data_for_load_components, is_first_load_components);
+                current_time = sync_times.child("current time").getValue(Integer.class);
+                if(clock_updater != null){
+                    clock_updater.cancel();
+                }
+                update_clock();
+                clock_updater = new Timer();
+                clock_updater.scheduleAtFixedRate(new TimerTask() {
                     @Override
-                    public void onDataChange(DataSnapshot sync_times) {
-                        park_sync_times = sync_times;
-                        load_components(attractions_data_for_load_components, is_first_load_components);
-                        List<Attraction> sorted_attractions = new ArrayList<>();
-                        for(Attraction attraction : attractions._attractions_array){
-                            sorted_attractions.add(attraction);
+                    public void run() {
+                        current_time++;
+                        if(current_time >= 24 * 60 * 60){
+                            current_time = 0;
                         }
-                        Collections.sort(sorted_attractions, new Comparator<Attraction>(){
-                            public int compare(Attraction attraction1, Attraction attraction2) {
-                                return attraction1._cost - attraction2._cost;
+                        update_clock();
+                    }
+                }, 1000, 1000);//updates the clock every 1 second
+                if(user_impossible_times == null) {
+                    user_impossible_times = new int[(int)park_full_times.child("1").getChildrenCount()];
+                    for(int i= 0; i < user_impossible_times.length; i++){
+                        user_impossible_times[i] = 0;
+                    }
+                }
+                if(full_times_changes == null){
+                    full_times_changes = new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot full_times) {
+                            park_full_times = full_times;
+                            if(attractions_maxes == null){
+                                init_choices_and_maxes();
                             }
-                        });
-                        int coins_counter = 0;
-                        int attractions_counter= 0;
-                        for(Attraction attraction : sorted_attractions){
-                            if(!attraction._is_full) {
-                                if ((coins_counter + (attraction._cost
-                                        * attraction._max)) > max_coins) {
-                                    attractions_counter += (max_coins - coins_counter)
-                                            / attraction._cost;
-                                    break;
-                                } else {
-                                    attractions_counter += attraction._max;
-                                    coins_counter += attraction._max
-                                            * attraction._cost;
-                                }
+                            Boolean is_choices_possible = is_choices_still_possible();
+                            if(!is_choices_possible){
+                                my_toast("Choices no longer possible, please choose again", Toast.LENGTH_LONG);
                             }
-                        }
-                        //attractions_counter now holds the maximum amount of attraction the user can pick using the coins.
-                        int average_attraction_time = sync_times.child("curr time between attractions").getValue(Integer.class)
-                                + sync_times.child("time range").getValue(Integer.class);
-                        String curr_hour = get_curr_hour();
-                        int curr_time_minutes = text_to_minutes(curr_hour,
-                                sync_times.child("UTC difference").getValue(Integer.class));
-                        String closing_time = sync_times.child("closing time").getValue(String.class);
-                        int closing_time_minutes = text_to_minutes(closing_time, 0);
-                        num_attractions_allowed_by_time = (closing_time_minutes - curr_time_minutes) / average_attraction_time;
-                        if(!sync_times.child("full times").exists()){
-                            my_toast("Sorry, park is closed right now", Toast.LENGTH_LONG);
-                            ChoiceActivity.this.finish();
-                            return;
-                        }
-                        if(sync_times.child("full times").child("1").getChildrenCount() < attractions_counter){
-                            display_amount_attractions_to_user((int)sync_times.child("full times").child("1").getChildrenCount());
-                        }
-                        if(full_times_changes == null){
-                            full_times_changes = new ValueEventListener() {
-                                @Override
-                                public void onDataChange(DataSnapshot sync_times) {
-                                    park_sync_times = sync_times;
-                                    if(attractions_maxes == null){
-                                        init_choices_and_maxes();
-                                    }
-                                    Boolean is_choices_possible = is_choices_still_possible();
-                                    if(!is_choices_possible){
-                                        my_toast("Choices no longer possible, please choose again", Toast.LENGTH_LONG);
-                                    }
-                                    load_components(attractions_data_for_load_components, !is_choices_possible);
-                                }
-
-                                @Override
-                                public void onCancelled(FirebaseError firebaseError) {
-                                    my_toast("Internet error!!!");
-                                }
-                            };
-                            main_ref.child("parks").child(Integer.toString(park_id_choice)).child("sync times").addValueEventListener(full_times_changes);
+                            update_min_time_components_number();
+                            load_components(attractions_data_for_load_components, !is_choices_possible);
                         }
 
-                    }
-                    public void onCancelled(FirebaseError firebaseError) {
-                        my_toast("Internet Error!!!");
-                    }
-                });
+                        @Override
+                        public void onCancelled(FirebaseError firebaseError) {
+                            my_toast("Internet error!!!");
+                        }
+                    };
+                    main_ref.child("parks").child(Integer.toString(park_id_choice)).child("sync times")
+                            .child("full times").addValueEventListener(full_times_changes);
+                }
+
+            }
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+                my_toast("Internet Error!!!");
+            }
+        });
     }
     public boolean is_choices_still_possible(){
         Map<String, Integer> prev_choice = new HashMap<String, Integer>(attractions_choices);
         init_choices_and_maxes();
         for(String key : prev_choice.keySet()){
             if(attractions_maxes.get(key) < prev_choice.get(key)){
+                init_choices_and_maxes();
                 return false;
             }else{
                 choice_algorithm(Integer.parseInt(key), prev_choice.get(key));
@@ -860,13 +863,6 @@ public class ChoiceActivity extends AppCompatActivity {
             }
         });
     }
-
-    /**
-     *
-     * @param text has to be in pattern hh:mm
-     * @param utc_difference the timezone's utc difference
-     * @return the time in minutes as an integer.
-     */
     public static int text_to_minutes(String text, int utc_difference){
         int return_value =  ((Integer.parseInt(text.substring(0, 2)) + utc_difference) * 60
                 + Integer.parseInt(text.substring(3, 5))) % (24 * 60);
@@ -901,10 +897,9 @@ public class ChoiceActivity extends AppCompatActivity {
         }else{//if(next_choice < attractions_choices.get(Integer.toString(att_id)))
             attractions_choices.put(Integer.toString(att_id), next_choice);
             for(int i = 1; i <= attractions._attractions_array.length; i++){
-                int low = attractions_maxes.get(Integer.toString(i)), high = Math.min(
-                        sum_zeros(park_sync_times.child("full times").child(Integer.toString(i))),
-                        attractions._attractions_array[i - 1]._max
-                );
+                int low = attractions_maxes.get(Integer.toString(i));
+                int high = Math.min(sum_zeros(park_full_times.child(Integer.toString(i))),
+                        attractions._attractions_array[i - 1]._max);
                 while(low < high){
                     int mid = (int)(((high + low) / 2.0) + 0.6);
                     if(is_amount_possible(i, mid)){
@@ -916,6 +911,37 @@ public class ChoiceActivity extends AppCompatActivity {
                 attractions_maxes.put(Integer.toString(i), low);
             }
         }
+
+        update_min_time_components_number();
+    }
+    boolean is_time_possible(int number_time_components){
+        int num_attractions = 0;
+        for(int i = 1; i <= attractions._attractions_array.length; i++){
+            num_attractions += attractions_choices.get(Integer.toString(i));
+        }
+        if(num_attractions == 0){
+            return true;
+        }
+        if(number_time_components == 0){
+            return true;
+        }
+        /*if(num_attractions > (int) park_full_times.child("1").getChildrenCount()){
+            return false;
+        }*/
+        double[][] full_times = new double[num_attractions][number_time_components];
+        int current_row = 0;
+        for(Attraction attraction: attractions._attractions_array){
+            int current_choice = attractions_choices.get(attraction._key);
+            for (int i = 0; i < current_choice; i++) {
+                for (int j = 0; j < number_time_components; j++) {
+                    full_times[current_row][j] = Math.max(park_full_times.child(attraction._key)
+                            .child(Integer.toString(j)).getValue(Integer.class), user_impossible_times[j]);
+                }
+                current_row++;
+            }
+        }
+        HungarianAlgorithm algorithm_object = new HungarianAlgorithm(full_times);
+        return Math.abs(get_sum(algorithm_object.execute(), full_times)) < 0.001;//Checks if sum equals 0;
     }
     boolean is_amount_possible(int att_id, int amount){
         int num_attractions = 0;
@@ -929,20 +955,18 @@ public class ChoiceActivity extends AppCompatActivity {
         if(num_attractions == 0){
             return true;
         }
-        if(num_attractions > (int) park_sync_times.
-                child("full times").child("1").getChildrenCount()){
+        if(num_attractions > (int) park_full_times.child("1").getChildrenCount()){
             return false;
         }
-        double[][] full_times = new double[num_attractions][(int) park_sync_times.
-                child("full times").child("1").getChildrenCount()];
+        double[][] full_times = new double[num_attractions][(int) park_full_times.child("1").getChildrenCount()];
         int current_row = 0;
         for(Attraction attraction: attractions._attractions_array){
             int current_choice = attractions_choices.get(attraction._key);
             for (int i = 0; i < (attraction._key.equals(Integer.toString(att_id)) ? amount :
                     current_choice); i++) {
-                for (int j = 0; j < park_sync_times.child("full times").child("1").getChildrenCount(); j++) {
-                    full_times[current_row][j] = park_sync_times.child("full times").child(attraction._key)
-                    .child(Integer.toString(j)).getValue(Integer.class);
+                for (int j = 0; j < park_full_times.child("1").getChildrenCount(); j++) {
+                    full_times[current_row][j] = Math.max(park_full_times.child(attraction._key)
+                    .child(Integer.toString(j)).getValue(Integer.class), user_impossible_times[j]);
                 }
                 current_row++;
             }
@@ -956,6 +980,56 @@ public class ChoiceActivity extends AppCompatActivity {
             sum += costs[row][result[row]];
         }
         return sum;
+    }
+    public void update_clock(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (clock == null){
+                    clock = (TextView)findViewById(R.id.clock);
+                }
+                int h = current_time / (60*60);
+                int m = (current_time % (60 * 60)) / 60;
+                int s = current_time % 60;
+                clock.setText(String.format(Locale.US, "%02d:%02d:%02d", h, m, s));
+            }
+        });
+    }
+    public void update_max_trip_hour(){
+        int minutes = current_time / 60;
+        int finish_time_in_minutes = (minutes / 5) * 5 + park_sync_times.child("start waiting time").getValue(Integer.class)
+                + min_time_components * park_sync_times.child("curr time between attractions").getValue(Integer.class);
+        String trip_end = "";
+        if(min_time_components > -1){
+            int h = finish_time_in_minutes / (60);
+            int m = finish_time_in_minutes % 60;
+            trip_end = String.format(Locale.US, "Trip ends at: %02d:%02d", h, m);
+        }
+        TextView trip_end_text_view = (TextView)findViewById(R.id.finish_trip_time);
+        trip_end_text_view.setText(trip_end);
+    }
+    public void update_min_time_components_number(){
+        //Searching for the minimal number of time elements required to fulfill the user's request:
+        int sum = 0;
+        for (String key : attractions_choices.keySet()){
+            sum += attractions_choices.get(key);
+        }
+        int low = sum, high = (int)park_full_times.child("1").getChildrenCount();
+        if ((high < low) || (sum == 0)){
+            min_time_components = -1;
+            update_max_trip_hour();
+            return;
+        }
+        while(low < high){
+            int mid = (low + high) / 2;
+            if(is_time_possible(mid)){
+                high = mid;
+            }else{
+                low = mid + 1;
+            }
+        }
+        min_time_components = low;
+        update_max_trip_hour();
     }
     /*@Override
     public void onPause(){

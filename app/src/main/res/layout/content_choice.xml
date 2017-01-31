@@ -28,15 +28,14 @@
             android:layout_height="30dp">
 
             <TextView
-                android:text="00:00:00"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/clock"
                 android:layout_weight="1"
-                android:textSize="24sp" />
+                android:textSize="24sp"
+                android:text="00:00:00" />
 
             <TextView
-                android:text="Trip ends at: 00:00"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/finish_trip_time"
